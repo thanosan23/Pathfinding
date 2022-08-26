@@ -125,6 +125,8 @@ def generate_graph():
                 graph.add_edge(nodes_map[(x, y)], nodes_map[(nx, ny)])
     return graph, nodes_map
 
+def find_by_key(dictionary, value):
+    return list(dictionary.keys())[list(node_map.values()).index(value)]
 # main
 GRID = create_grid()
 graph, node_map = generate_graph()
@@ -133,6 +135,10 @@ start_node = None
 end_node = None
 
 mode = DrawMode.OBSTACLE
+path = None
+visiting = None
+visited = False
+running = False
 
 while True:
     # clear screen
@@ -141,54 +147,80 @@ while True:
         if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit(0)
-        # get mouse press
-        left, _, right = pygame.mouse.get_pressed()
-        if left:
-            x, y = get_mousepos()
-            if GRID[(x, y)].obstacle or GRID[(x, y)].start or GRID[(x, y)].end:
-                continue
-            if mode == DrawMode.OBSTACLE:
-                GRID[(x, y)].make_obstacle()
-            elif mode == DrawMode.START:
-                GRID[(x, y)].make_start()
-                start_node = (x, y)
-            elif mode == DrawMode.END:
-                GRID[(x, y)].make_end()
-                end_node = (x, y)
-            mode = DrawMode.OBSTACLE
-        elif right:
-            x, y = get_mousepos()
-            GRID[(x, y)].clear()
-            if start_node == (x, y):
-                start_node = None
-            elif end_node == (x, y):
-                end_node = None
-        # get keyboard press
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_c:
-                GRID = create_grid()
-                start_node = None
-                end_node = None
-            if event.key == pygame.K_s:
-                if start_node is None:
-                    if mode != DrawMode.START:
-                        mode = DrawMode.START
-                    else:
-                        mode = DrawMode.OBSTACLE
-            if event.key == pygame.K_e:
-                if end_node is None:
-                    if mode != DrawMode.END:
-                        mode = DrawMode.END
-                    else:
-                        mode = DrawMode.OBSTACLE
-            if event.key == pygame.K_r:
-                if end_node is not None and start_node is not None:
-                    start = node_map[start_node]
-                    end = node_map[end_node]
-                    Dijkstra.run(graph, start, end)
-
+        if not running:
+            # get mouse press
+            left, _, right = pygame.mouse.get_pressed()
+            if left:
+                x, y = get_mousepos()
+                if GRID[(x, y)].obstacle or GRID[(x, y)].start or GRID[(x, y)].end:
+                    continue
+                if mode == DrawMode.OBSTACLE:
+                    GRID[(x, y)].make_obstacle()
+                elif mode == DrawMode.START:
+                    GRID[(x, y)].make_start()
+                    start_node = (x, y)
+                elif mode == DrawMode.END:
+                    GRID[(x, y)].make_end()
+                    end_node = (x, y)
+                mode = DrawMode.OBSTACLE
+            elif right:
+                x, y = get_mousepos()
+                GRID[(x, y)].clear()
+                if start_node == (x, y):
+                    start_node = None
+                elif end_node == (x, y):
+                    end_node = None
+            # get keyboard press
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_c:
+                    GRID = create_grid()
+                    start_node = None
+                    end_node = None
+                if event.key == pygame.K_s:
+                    if start_node is None:
+                        if mode != DrawMode.START:
+                            mode = DrawMode.START
+                        else:
+                            mode = DrawMode.OBSTACLE
+                if event.key == pygame.K_e:
+                    if end_node is None:
+                        if mode != DrawMode.END:
+                            mode = DrawMode.END
+                        else:
+                            mode = DrawMode.OBSTACLE
+                if event.key == pygame.K_r:
+                    if end_node is not None and start_node is not None:
+                        start = node_map[start_node]
+                        end = node_map[end_node]
+                        visits = []
+                        def callback(current_node):
+                            if current_node not in (start, end):
+                                x, y = find_by_key(node_map, current_node)
+                                visits.append((x, y))
+                        Dijkstra.run(graph, start, end, callback)
+                        path = iter(graph.get_path(end))
+                        visiting = iter(visits)
+                        running = True
 
     # draw grid & gridlines
+    if visiting is not None:
+        coordinate = next(visiting, None)
+        if coordinate is None:
+            visiting = None
+            visited = True
+        else:
+            GRID[coordinate].colour = Colour.GREEN.value
+    if visited:
+        if path is not None:
+            node = next(path, None)
+            if node is None:
+                path = None
+                visited = False
+                running = False
+            else:
+                if node not in (start, end):
+                    x, y = find_by_key(node_map, node)
+                    GRID[(x, y)].colour = Colour.PURPLE.value
     draw_grid(GRID)
     draw_gridlines()
 

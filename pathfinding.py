@@ -4,16 +4,17 @@ from graph import Node, Graph
 
 class PathfindingAlgorithm():
     @staticmethod
-    def run(graph, start, end):
+    def run(graph, start, end, callback):
         assert isinstance(graph, Graph)
         assert isinstance(start, Node)
         assert isinstance(end, Node)
+        assert callable(callback)
         graph.reset()
 
 class Dijkstra(PathfindingAlgorithm):
     @staticmethod
-    def run(graph, start, end):
-        super(Dijkstra, Dijkstra).run(graph, start, end)
+    def run(graph, start, end, callback):
+        super(Dijkstra, Dijkstra).run(graph, start, end, callback)
 
         pq = PriorityQueue()
         graph.set_distances(inf)
@@ -28,6 +29,7 @@ class Dijkstra(PathfindingAlgorithm):
             if node == end:
                 break
             graph.visited_node(node)
+            callback(node)
             for neighbour, weight in node.neighbours:
                 if graph.distances[neighbour] > graph.distances[node] + weight:
                     graph.update_distance(neighbour,
