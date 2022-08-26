@@ -37,11 +37,39 @@ class Box:
         self.x = x
         self.y = y
         self.colour = colour
+
+        self.start = False
+        self.end = False
+        self.obstacle = False
+
+    def make_start(self):
+        self.start = True
+        self.colour = Colour.RED.value
+
+    def make_end(self):
+        self.end = True
+        self.colour = Colour.BLUE.value
+
+    def make_obstacle(self):
+        self.obstacle = True
+        self.colour = Colour.GRAY.value
+
+    def clear(self):
+        self.start = False
+        self.end = False
+        self.obstacle = False
+        self.colour = Colour.WHITE.value
+
     def draw(self):
         pygame.draw.rect(screen,
                          self.colour,
                          (self.x*CELL_SIZE, self.y*CELL_SIZE,
                           CELL_SIZE, CELL_SIZE))
+
+class DrawMode(Enum):
+    START = 0
+    END = 1
+    OBSTACLE = 2
 
 def get_mousepos():
     x, y = pygame.mouse.get_pos()
@@ -101,26 +129,64 @@ def generate_graph():
 GRID = create_grid()
 graph, node_map = generate_graph()
 
+start_node = None
+end_node = None
+
+mode = DrawMode.OBSTACLE
+
 while True:
     # clear screen
     screen.fill(Colour.WHITE.value)
-
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit(0)
         # get mouse press
-        left, middle, right = pygame.mouse.get_pressed()
+        left, _, right = pygame.mouse.get_pressed()
         if left:
             x, y = get_mousepos()
-            GRID[(x, y)].colour = Colour.GRAY.value
+            if GRID[(x, y)].obstacle or GRID[(x, y)].start or GRID[(x, y)].end:
+                continue
+            if mode == DrawMode.OBSTACLE:
+                GRID[(x, y)].make_obstacle()
+            elif mode == DrawMode.START:
+                GRID[(x, y)].make_start()
+                start_node = (x, y)
+            elif mode == DrawMode.END:
+                GRID[(x, y)].make_end()
+                end_node = (x, y)
+            mode = DrawMode.OBSTACLE
         elif right:
             x, y = get_mousepos()
-            GRID[(x, y)].colour = Colour.WHITE.value
+            GRID[(x, y)].clear()
+            if start_node == (x, y):
+                start_node = None
+            elif end_node == (x, y):
+                end_node = None
         # get keyboard press
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_c:
                 GRID = create_grid()
+                start_node = None
+                end_node = None
+            if event.key == pygame.K_s:
+                if start_node is None:
+                    if mode != DrawMode.START:
+                        mode = DrawMode.START
+                    else:
+                        mode = DrawMode.OBSTACLE
+            if event.key == pygame.K_e:
+                if end_node is None:
+                    if mode != DrawMode.END:
+                        mode = DrawMode.END
+                    else:
+                        mode = DrawMode.OBSTACLE
+            if event.key == pygame.K_r:
+                if end_node is not None and start_node is not None:
+                    start = node_map[start_node]
+                    end = node_map[end_node]
+                    Dijkstra.run(graph, start, end)
+
 
     # draw grid & gridlines
     draw_grid(GRID)
