@@ -39,3 +39,4 @@ class Dijkstra(PathfindingAlgorithm):
                                           graph.distances[node] + weight)
                     graph.parents[neighbour] = node
                     pq.put([graph.distances[neighbour], neighbour])
+
