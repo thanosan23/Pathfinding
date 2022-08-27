@@ -1,5 +1,6 @@
 import sys
 from enum import Enum
+from functools import partial
 import pygame
 
 from graph import Node, Graph
@@ -129,16 +130,22 @@ def find_by_key(dictionary, value):
     return list(dictionary.keys())[list(node_map.values()).index(value)]
 # main
 GRID = create_grid()
-graph, node_map = generate_graph()
+mode = DrawMode.OBSTACLE
 
+# for tracing paths
+path = None
+visiting = None
+
+visited = False
+running = False
+
+# for algorithm
+graph, node_map = generate_graph()
 start_node = None
 end_node = None
 
-mode = DrawMode.OBSTACLE
-path = None
-visiting = None
-visited = False
-running = False
+# the algorithm chosen for pathfinding
+algorithm = Dijkstra
 
 while True:
     # clear screen
@@ -193,11 +200,20 @@ while True:
                         start = node_map[start_node]
                         end = node_map[end_node]
                         visits = []
-                        def callback(current_node):
+
+                        def callback(current_node, start, end, visits):
                             if current_node not in (start, end):
                                 x, y = find_by_key(node_map, current_node)
                                 visits.append((x, y))
-                        Dijkstra.run(graph, start, end, callback)
+
+                        def skip_node_clause(current_node):
+                            # skip if current node is an obstacle
+                            x, y = find_by_key(node_map, current_node)
+                            return GRID[(x, y)].obstacle
+
+                        algorithm.run(graph, start, end,
+                                      partial(callback, start=start, end=end, visits=visits),
+                                      skip_node_clause)
                         path = iter(graph.get_path(end))
                         visiting = iter(visits)
                         running = True

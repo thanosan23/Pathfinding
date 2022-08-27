@@ -4,17 +4,20 @@ from graph import Node, Graph
 
 class PathfindingAlgorithm():
     @staticmethod
-    def run(graph, start, end, callback):
+    def run(graph, start, end, callback, skip_node_clause):
         assert isinstance(graph, Graph)
         assert isinstance(start, Node)
         assert isinstance(end, Node)
         assert callable(callback)
+        assert callable(skip_node_clause)
         graph.reset()
 
 class Dijkstra(PathfindingAlgorithm):
     @staticmethod
-    def run(graph, start, end, callback):
-        super(Dijkstra, Dijkstra).run(graph, start, end, callback)
+    def run(graph, start, end, callback=lambda node: None,
+            skip_node_clause=lambda node: None):
+        super(Dijkstra, Dijkstra).run(graph, start, end, callback,
+                                      skip_node_clause)
 
         pq = PriorityQueue()
         graph.set_distances(inf)
@@ -24,10 +27,10 @@ class Dijkstra(PathfindingAlgorithm):
         pq.put([0, start]) # [distance, node]
         while not pq.empty():
             _, node = pq.get()
-            if node in graph.visited:
-                continue
             if node == end:
                 break
+            if skip_node_clause(node) or node in graph.visited:
+                continue
             graph.visited_node(node)
             callback(node)
             for neighbour, weight in node.neighbours:
