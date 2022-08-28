@@ -4,15 +4,14 @@ from functools import partial
 import pygame
 
 from graph import Node, Graph
-from pathfinding import Dijkstra
+from pathfinding import Dijkstra, A_star
+from utils import find_by_key
 
 # Constants
 FPS = 60
 DIM = 30
 CELL_SIZE = 20
-
-# the algorithm chosen for pathfinding
-algorithm = Dijkstra
+ALGORITHM = A_star
 
 # Setup
 pos_to_renderpos = lambda x: x * CELL_SIZE
@@ -130,9 +129,6 @@ def generate_graph():
                 graph.add_edge(nodes_map[(x, y)], nodes_map[(nx, ny)])
     return graph, nodes_map
 
-def find_by_key(dictionary, value):
-    return list(dictionary.keys())[list(node_map.values()).index(value)]
-
 # main
 GRID = create_grid()
 mode = DrawMode.OBSTACLE
@@ -213,7 +209,7 @@ while True:
                             x, y = find_by_key(node_map, current_node)
                             return GRID[(x, y)].obstacle
 
-                        algorithm.run(graph, start, end,
+                        ALGORITHM.run(graph, start, end, node_map,
                                       partial(callback, start=start, end=end, visits=visits),
                                       skip_node_clause)
                         path = iter(graph.get_path(end))
