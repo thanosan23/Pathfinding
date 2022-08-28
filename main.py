@@ -11,6 +11,9 @@ FPS = 60
 DIM = 30
 CELL_SIZE = 20
 
+# the algorithm chosen for pathfinding
+algorithm = Dijkstra
+
 # Setup
 pos_to_renderpos = lambda x: x * CELL_SIZE
 
@@ -103,6 +106,7 @@ def draw_grid(grid):
 
 DELTA_X = [1, -1, 0, 0]
 DELTA_Y = [0, 0, 1, -1]
+
 def neighbours(x, y):
     # returns all valid neighbours for a node
     ret = []
@@ -128,6 +132,7 @@ def generate_graph():
 
 def find_by_key(dictionary, value):
     return list(dictionary.keys())[list(node_map.values()).index(value)]
+
 # main
 GRID = create_grid()
 mode = DrawMode.OBSTACLE
@@ -143,9 +148,6 @@ running = False
 graph, node_map = generate_graph()
 start_node = None
 end_node = None
-
-# the algorithm chosen for pathfinding
-algorithm = Dijkstra
 
 while True:
     # clear screen
@@ -218,25 +220,26 @@ while True:
                         visiting = iter(visits)
                         running = True
 
-    # draw grid & gridlines
-    if visiting is not None:
-        coordinate = next(visiting, None)
-        if coordinate is None:
-            visiting = None
-            visited = True
-        else:
-            GRID[coordinate].colour = Colour.GREEN.value
-    if visited:
-        if path is not None:
-            node = next(path, None)
-            if node is None:
-                path = None
-                visited = False
-                running = False
+    # draw grid & gridlines (replay algorithm)
+    if running:
+        if visiting is not None:
+            coordinate = next(visiting, None)
+            if coordinate is None:
+                visiting = None
+                visited = True
             else:
-                if node not in (start, end):
-                    x, y = find_by_key(node_map, node)
-                    GRID[(x, y)].colour = Colour.PURPLE.value
+                GRID[coordinate].colour = Colour.GREEN.value
+        if visited:
+            if path is not None:
+                node = next(path, None)
+                if node is None:
+                    path = None
+                    visited = False
+                    running = False
+                else:
+                    if node not in (start, end):
+                        x, y = find_by_key(node_map, node)
+                        GRID[(x, y)].colour = Colour.PURPLE.value
     draw_grid(GRID)
     draw_gridlines()
 
