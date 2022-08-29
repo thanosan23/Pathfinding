@@ -10,11 +10,15 @@ class UIElement:
         self.clickable = clickable
 
         self.name = None
+        def clicked(mouse_x, mouse_y):
+            return (mouse_x >= self.x and
+                    mouse_y >= self.y and
+                    mouse_x <= self.x + self.width and
+                    mouse_y <= self.y + self.height)
 
+        if self.clickable is True:
+            setattr(self, "clicked", clicked)
 
-    def draw(self, screen):
-        rect = pygame.Rect(self.x, self.y, self.width, self.height)
-        pygame.draw.rect(screen, self.colour, rect)
 
 class Text(UIElement):
     def __init__(self, x, y, colour, font, text):
@@ -37,17 +41,16 @@ class Button(UIElement):
         width, height = self.font.size(self.text)
         super().__init__(x, y, width * 2, height * 2, colour, True)
 
+        self.transparency = 255
+
     def draw(self, screen):
-        super().draw(screen)
+        rect = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+        rect.fill((*self.colour, self.transparency))
+        screen.blit(rect, (self.x, self.y))
+
         surf = self.font.render(self.text, True, (255, 255, 255))
         screen.blit(surf, ((self.x + (self.width // 4)),
                            (self.y + (self.height // 4))))
-
-    def clicked(self, mouse_x, mouse_y):
-        return (mouse_x >= self.x and
-                mouse_y >= self.y and
-                mouse_x <= self.x + self.width and
-                mouse_y <= self.y + self.height)
 
 class HUD:
     def __init__(self, x, y, width, height):
@@ -84,6 +87,7 @@ class HUD:
 
             if self.last_y >= self.y + self.height:
                 self.elements_overflow_screen = True
+
     def draw(self, screen):
         for element in self.elements:
             element.draw(screen)

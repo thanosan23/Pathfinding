@@ -5,7 +5,7 @@ import pygame
 
 from graph import Node, Graph
 from pathfinding import Dijkstra, A_star
-from utils import find_by_key
+from utils import find_by_key, lerp
 from ui import HUD, Button, Text
 
 # Constants
@@ -42,7 +42,7 @@ class Colour(Enum):
 hud = HUD(0, pos_to_renderpos(DIM), pos_to_renderpos(DIM), 100)
 hud.add_element("Dijkstra", Button, Colour.RED.value, (font, "Dijkstra"))
 hud.add_element("A star", Button, Colour.BLUE.value, (font, "A star"))
-hud.add_element("Path length", Text, Colour.BLACK.value, (font, "Path Length: Unknown"))
+hud.add_element("Path length", Text, Colour.BLACK.value, (font, "Path length: Unknown"))
 
 class Box:
     def __init__(self, x, y, colour):
@@ -215,7 +215,11 @@ while True:
                 for element in hud.elements:
                     if element.clickable is True:
                         if element.clicked(*pygame.mouse.get_pos()):
-                            if ALGORITHM is not None and start_node is not None and end_node is not None:
+                            if (
+                                    ALGORITHM is not None and
+                                    start_node is not None and
+                                    end_node is not None
+                                ):
                                 for x in range(0, DIM):
                                     for y in range(0, DIM):
                                         if GRID[(x, y)].vis:
@@ -261,7 +265,20 @@ while True:
                             mode = DrawMode.END
                         else:
                             mode = DrawMode.OBSTACLE
+    mouse_on_button = False
+    for element in hud.elements:
+        if element.clickable:
+            if element.clicked(*pygame.mouse.get_pos()):
+                element.transparency = lerp(255, 100, 0.3)
+                mouse_on_button = True
+            else:
+                if element.transparency != 255:
+                    element.transparency = lerp(element.transparency, 255, 0.3)
 
+    if mouse_on_button:
+        pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
+    else:
+        pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
 
     # draw grid & gridlines (replay algorithm)
     if running:
