@@ -50,7 +50,7 @@ class A_star(PathfindingAlgorithm):
         super(A_star, A_star).run(graph, start, end, node_map, callback,
                                   skip_node_clause)
 
-        # heuristic function that uses manhattan distance relative to end node (i.e. our goal)
+        # heuristic function, uses manhattan distance relative to end node (i.e. our goal)
         def h(node):
             node_x, node_y = find_by_key(node_map, node)
             end_x, end_y = find_by_key(node_map, end)

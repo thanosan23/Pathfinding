@@ -6,12 +6,13 @@ import pygame
 from graph import Node, Graph
 from pathfinding import Dijkstra, A_star
 from utils import find_by_key
+from ui import HUD, Button, Text
 
 # Constants
 FPS = 60
 DIM = 30
 CELL_SIZE = 20
-ALGORITHM = A_star
+ALGORITHM = None
 
 # Setup
 pos_to_renderpos = lambda x: x * CELL_SIZE
@@ -19,8 +20,11 @@ pos_to_renderpos = lambda x: x * CELL_SIZE
 pygame.init()
 pygame.display.set_caption("Pathfinding")
 screen = pygame.display.set_mode((pos_to_renderpos(DIM),
-                                  pos_to_renderpos(DIM)))
+                                  pos_to_renderpos(DIM)+100))
 clock = pygame.time.Clock()
+
+pygame.font.init()
+font = pygame.font.SysFont('Arial', 15)
 
 # Utilities
 class Colour(Enum):
@@ -35,6 +39,11 @@ class Colour(Enum):
     BLUE = (0, 0, 255)
     PURPLE = (128, 0, 128)
 
+hud = HUD(0, pos_to_renderpos(DIM), pos_to_renderpos(DIM), 100)
+hud.add_element("Dijkstra", Button, Colour.RED.value, (font, "Dijkstra"))
+hud.add_element("A star", Button, Colour.BLUE.value, (font, "A star"))
+hud.add_element("Path length", Text, Colour.BLACK.value, (font, "Path Length: Unknown"))
+
 class Box:
     def __init__(self, x, y, colour):
         self.x = x
@@ -44,6 +53,7 @@ class Box:
         self.start = False
         self.end = False
         self.obstacle = False
+        self.vis = False
 
     def make_start(self):
         self.start = True
@@ -61,6 +71,7 @@ class Box:
         self.start = False
         self.end = False
         self.obstacle = False
+        self.vis = False
         self.colour = Colour.WHITE.value
 
     def draw(self):
@@ -145,6 +156,37 @@ graph, node_map = generate_graph()
 start_node = None
 end_node = None
 
+def run_algorithm():
+    if ALGORITHM is not None:
+        path = None
+        visiting = None
+
+        visited = False
+        running = False
+
+        if end_node is not None and start_node is not None:
+            start = node_map[start_node]
+            end = node_map[end_node]
+            visits = []
+
+            def callback(current_node, start, end, visits):
+                if current_node not in (start, end):
+                    x, y = find_by_key(node_map, current_node)
+                    visits.append((x, y))
+
+            def skip_node_clause(current_node):
+                # skip if current node is an obstacle
+                x, y = find_by_key(node_map, current_node)
+                return GRID[(x, y)].obstacle
+
+            ALGORITHM.run(graph, start, end, node_map,
+                          partial(callback, start=start, end=end, visits=visits),
+                          skip_node_clause)
+            path = iter(graph.get_path(end))
+            visiting = iter(visits)
+            running = True
+    return path, visiting, visited, running
+
 while True:
     # clear screen
     screen.fill(Colour.WHITE.value)
@@ -156,65 +198,70 @@ while True:
             # get mouse press
             left, _, right = pygame.mouse.get_pressed()
             if left:
+                hud.elements_dict["Path length"].update_text(f"Path length: Unknown")
                 x, y = get_mousepos()
-                if GRID[(x, y)].obstacle or GRID[(x, y)].start or GRID[(x, y)].end:
-                    continue
-                if mode == DrawMode.OBSTACLE:
-                    GRID[(x, y)].make_obstacle()
-                elif mode == DrawMode.START:
-                    GRID[(x, y)].make_start()
-                    start_node = (x, y)
-                elif mode == DrawMode.END:
-                    GRID[(x, y)].make_end()
-                    end_node = (x, y)
-                mode = DrawMode.OBSTACLE
+                if x < DIM and y < DIM:
+                    if GRID[(x, y)].obstacle or GRID[(x, y)].start or GRID[(x, y)].end:
+                        continue
+                    if mode == DrawMode.OBSTACLE:
+                        GRID[(x, y)].make_obstacle()
+                    elif mode == DrawMode.START:
+                        GRID[(x, y)].make_start()
+                        start_node = (x, y)
+                    elif mode == DrawMode.END:
+                        GRID[(x, y)].make_end()
+                        end_node = (x, y)
+                    mode = DrawMode.OBSTACLE
+                for element in hud.elements:
+                    if element.clickable is True:
+                        if element.clicked(*pygame.mouse.get_pos()):
+                            if ALGORITHM is not None and start_node is not None and end_node is not None:
+                                for x in range(0, DIM):
+                                    for y in range(0, DIM):
+                                        if GRID[(x, y)].vis:
+                                            GRID[(x, y)].clear()
+                            if element.name == "Dijkstra":
+                                ALGORITHM = Dijkstra
+                            elif element.name == "A star":
+                                ALGORITHM = A_star
+                            else:
+                                ALGORITHM = None
+                            path, visiting, visited, running = run_algorithm()
+                            if start_node is not None and end_node is not None:
+                                dist = graph.get_distance(node_map[end_node])
+                                hud.elements_dict["Path length"].update_text(f"Path length: {dist}")
+
             elif right:
+                hud.elements_dict["Path length"].update_text(f"Path length: Unknown")
                 x, y = get_mousepos()
-                GRID[(x, y)].clear()
-                if start_node == (x, y):
-                    start_node = None
-                elif end_node == (x, y):
-                    end_node = None
+                if x < DIM and y < DIM:
+                    GRID[(x, y)].clear()
+                    if start_node == (x, y):
+                        start_node = None
+                    elif end_node == (x, y):
+                        end_node = None
             # get keyboard press
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_c:
+                    hud.elements_dict["Path length"].update_text(f"Path length: Unknown")
                     GRID = create_grid()
                     start_node = None
                     end_node = None
                 if event.key == pygame.K_s:
+                    hud.elements_dict["Path length"].update_text(f"Path length: Unknown")
                     if start_node is None:
                         if mode != DrawMode.START:
                             mode = DrawMode.START
                         else:
                             mode = DrawMode.OBSTACLE
                 if event.key == pygame.K_e:
+                    hud.elements_dict["Path length"].update_text(f"Path length: Unknown")
                     if end_node is None:
                         if mode != DrawMode.END:
                             mode = DrawMode.END
                         else:
                             mode = DrawMode.OBSTACLE
-                if event.key == pygame.K_r:
-                    if end_node is not None and start_node is not None:
-                        start = node_map[start_node]
-                        end = node_map[end_node]
-                        visits = []
 
-                        def callback(current_node, start, end, visits):
-                            if current_node not in (start, end):
-                                x, y = find_by_key(node_map, current_node)
-                                visits.append((x, y))
-
-                        def skip_node_clause(current_node):
-                            # skip if current node is an obstacle
-                            x, y = find_by_key(node_map, current_node)
-                            return GRID[(x, y)].obstacle
-
-                        ALGORITHM.run(graph, start, end, node_map,
-                                      partial(callback, start=start, end=end, visits=visits),
-                                      skip_node_clause)
-                        path = iter(graph.get_path(end))
-                        visiting = iter(visits)
-                        running = True
 
     # draw grid & gridlines (replay algorithm)
     if running:
@@ -225,6 +272,7 @@ while True:
                 visited = True
             else:
                 GRID[coordinate].colour = Colour.GREEN.value
+                GRID[coordinate].vis = True
         if visited:
             if path is not None:
                 node = next(path, None)
@@ -233,11 +281,13 @@ while True:
                     visited = False
                     running = False
                 else:
-                    if node not in (start, end):
+                    if node not in (node_map[start_node], node_map[end_node]):
                         x, y = find_by_key(node_map, node)
                         GRID[(x, y)].colour = Colour.PURPLE.value
+                        GRID[(x, y)].vis = True
     draw_grid(GRID)
     draw_gridlines()
+    hud.draw(screen)
 
     pygame.display.update()
     clock.tick(FPS)
