@@ -1,6 +1,7 @@
 import sys
 from enum import Enum
 from functools import partial
+from itertools import product
 import pygame
 
 from graph import Node, Graph
@@ -104,15 +105,13 @@ def draw_gridlines():
 
 def create_grid():
     grid = {}
-    for x in range(0, DIM):
-        for y in range(0, DIM):
-            grid[(x, y)] = Box(x, y, Colour.WHITE.value)
+    for x, y in product(range(DIM), range(DIM)):
+        grid[(x, y)] = Box(x, y, Colour.WHITE.value)
     return grid
 
 def draw_grid(grid):
-    for x in range(0, DIM):
-        for y in range(0, DIM):
-            grid[(x, y)].draw()
+    for x, y in product(range(DIM), range(DIM)):
+        grid[(x, y)].draw()
 
 DELTA_X = [1, -1, 0, 0]
 DELTA_Y = [0, 0, 1, -1]
@@ -129,15 +128,14 @@ def generate_graph():
     graph = Graph()
     nodes_map = {}
     # create nodes
-    for y in range(DIM):
-        for x in range(DIM):
-            node = Node()
-            nodes_map[(x, y)] = node
+    for y, x in product(range(DIM), range(DIM)):
+        node = Node()
+        nodes_map[(x, y)] = node
     # create edges
-    for y in range(DIM):
-        for x in range(DIM):
-            for nx, ny in neighbours(x, y):
-                graph.add_edge(nodes_map[(x, y)], nodes_map[(nx, ny)])
+    for y, x in product(range(DIM), range(DIM)):
+        for nx, ny in neighbours(x, y):
+            graph.add_edge(nodes_map[(x, y)], nodes_map[(nx, ny)])
+
     return graph, nodes_map
 
 # main
@@ -147,7 +145,6 @@ mode = DrawMode.OBSTACLE
 # for tracing paths
 path = None
 visiting = None
-
 visited = False
 running = False
 
@@ -198,7 +195,14 @@ while True:
             # get mouse press
             left, _, right = pygame.mouse.get_pressed()
             if left:
+                # update the HUD
                 hud.elements_dict["Path length"].update_text(f"Path length: Unknown")
+
+                # clear auxillary nodes (green and purple nodes)
+                for x, y in product(range(DIM), range(DIM)):
+                    if GRID[(x, y)].vis:
+                        GRID[(x, y)].clear()
+
                 x, y = get_mousepos()
                 if x < DIM and y < DIM:
                     if GRID[(x, y)].obstacle or GRID[(x, y)].start or GRID[(x, y)].end:
@@ -220,10 +224,9 @@ while True:
                                     start_node is not None and
                                     end_node is not None
                                 ):
-                                for x in range(0, DIM):
-                                    for y in range(0, DIM):
-                                        if GRID[(x, y)].vis:
-                                            GRID[(x, y)].clear()
+                                for x, y in product(range(DIM), range(DIM)):
+                                    if GRID[(x, y)].vis:
+                                        GRID[(x, y)].clear()
                             if element.name == "Dijkstra":
                                 ALGORITHM = Dijkstra
                             elif element.name == "A star":
@@ -236,7 +239,14 @@ while True:
                                 hud.elements_dict["Path length"].update_text(f"Path length: {dist}")
 
             elif right:
+                # update the HUD
                 hud.elements_dict["Path length"].update_text(f"Path length: Unknown")
+
+                # clear auxillary nodes (green and purple nodes)
+                for x, y in product(range(DIM), range(DIM)):
+                    if GRID[(x, y)].vis:
+                        GRID[(x, y)].clear()
+
                 x, y = get_mousepos()
                 if x < DIM and y < DIM:
                     GRID[(x, y)].clear()

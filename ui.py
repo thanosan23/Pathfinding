@@ -10,13 +10,13 @@ class UIElement:
         self.clickable = clickable
 
         self.name = None
-        def clicked(mouse_x, mouse_y):
-            return (mouse_x >= self.x and
-                    mouse_y >= self.y and
-                    mouse_x <= self.x + self.width and
-                    mouse_y <= self.y + self.height)
 
         if self.clickable is True:
+            def clicked(mouse_x, mouse_y):
+                return (mouse_x >= self.x and
+                        mouse_y >= self.y and
+                        mouse_x <= self.x + self.width and
+                        mouse_y <= self.y + self.height)
             setattr(self, "clicked", clicked)
 
 
