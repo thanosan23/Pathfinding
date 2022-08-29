@@ -53,7 +53,7 @@ class Button(UIElement):
                            (self.y + (self.height // 4))))
 
 class HUD:
-    def __init__(self, x, y, width, height):
+    def __init__(self, x, y, width, height, padding=(10, 10)):
         self.x = x
         self.y = y
         self.width = width
@@ -65,27 +65,29 @@ class HUD:
         self.last_x = 0
         self.last_y = 0
 
-        self.padding_x = 10
-        self.padding_y = 10
+        self.padding = padding
 
         self.elements_overflow_screen = False
+
     def add_element(self, name, element, colour, extra_args=()):
         # extra args holds the extraneous arguments that do not belong to UIElement parent class
         if not self.elements_overflow_screen:
-            ui = element(self.x + self.last_x + self.padding_x,
-                         self.y + self.last_y + self.padding_y,
+            # elements cannot have the same name
+            assert name not in self.elements_dict.keys()
+
+            ui = element(self.x + self.last_x + self.padding[0],
+                         self.y + self.last_y + self.padding[1],
                          colour, *extra_args)
             ui.name = name
-            self.elements.append(ui)
-            self.elements_dict[name] = ui
-
-            self.last_x += ui.width + self.padding_x
-
-            if self.last_x + self.padding_x >= self.x + self.width:
+            if self.x + self.last_x + self.padding[0] + ui.width <= self.x + self.width:
+                self.elements.append(ui)
+                self.elements_dict[name] = ui
+                self.last_x += ui.width + self.padding[0]
+            else:
                 self.last_x = 0
-                self.last_y += element.height + self.padding_y
+                self.last_y += ui.height + self.padding[1]
 
-            if self.last_y >= self.y + self.height:
+            if self.y + self.last_y + self.padding[1] + ui.height >= self.y + self.height:
                 self.elements_overflow_screen = True
 
     def draw(self, screen):

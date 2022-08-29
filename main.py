@@ -266,6 +266,8 @@ while True:
                         else:
                             mode = DrawMode.OBSTACLE
     mouse_on_button = False
+
+    # linear interpolate transparency for visual effect
     for element in hud.elements:
         if element.clickable:
             if element.clicked(*pygame.mouse.get_pos()):
